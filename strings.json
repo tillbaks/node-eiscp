@@ -1,0 +1,18 @@
+{
+    "connecting": "INFO (1001) Connecting to %s:%s",
+    "connected": "INFO (1002) Connected to %s:%s",
+    "disconnected": "INFO (1003) Disconnected from %s:%s",
+
+    "received_data": "DEBUG (2001) Recevied data from %s:%s - %j",
+    "sent_command": "DEBUG (2002) Sent command to %s:%s - %s (packet: %s)",
+    "received_discovery": "DEBUG (2003) Received discovery packet from %s:%s (%j)",
+    "sent_discovery": "DEBUG (2004) Sent broadcast discovery packet to %s:%s (packet: %s)",
+
+    "server_error": "ERROR (3001) Server error on %s:%s - %j",
+    "send_not_connected": "ERROR (3002) Not connected, can't send data: %j",
+
+    "zone_not_exist": "ERROR (3101) Zone %s does not exist in command file",
+    "cmd_not_exist": "ERROR (3102) Command %s does not exist in zone %s",
+    "arg_not_exist": "ERROR (3103) Argument %s does not exist in command %s"
+
+}
