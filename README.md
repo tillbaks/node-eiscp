@@ -40,6 +40,39 @@ In other words, instead of the ``.`` and ``=`` separators, whitespace may
 be used, and the colon ``:`` is an alternative to ``=``. However, it's best
 to use the suggested syntax above.
 
+### Events
+
+You will to listen to events to use this module.
+
+#### .on("data")
+
+Data from connected receiver.
+
+**data:**
+- command _(string|array)_ - (array if command has aliases) contains the high-level command
+- argument _(string)_ - string contains the high-level argument
+- iscp_command _(string)_ - string contains the low-level command
+
+#### .on("connect")
+
+Will fire when connected.
+
+#### .on("close")
+
+Will fire when disconnected.
+
+#### .on("error")
+
+Will fire when error is encountered.
+
+**message:** _(string)_ - contains an error message
+
+#### .on("debug")
+
+Will fire when debug message is encountered. Use this when developing, you will get useful messages for debugging.
+
+**message:** _(string)_ - contains a debug message
+
 ### API
 
 #### connect ([ options ])
