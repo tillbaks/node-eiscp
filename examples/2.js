@@ -13,8 +13,6 @@ eiscp.on("data", function (result) {
     console.log(
         "Received data from receiver:" + util.format("%j", result)
     );
-    eiscp.close();
-
 });
 
 eiscp.on('connect', function () {
