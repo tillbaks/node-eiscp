@@ -7,7 +7,7 @@ Basically it is a merge of my previous module which was really simple and https:
 ### How to use it?
 
 #### See the examples
-https://github.com/tillbaks/node-eiscp/master/examples
+https://github.com/tillbaks/node-eiscp/tree/master/examples
 
 ### Command syntax
 
@@ -121,7 +121,7 @@ Retreives an array of all commands in the provided zone
 
 Retreives an array of all arguments in the provided command
 
-**command:** _(string)_ - command can be "system-power", "zone2.volume" etc.. (NODE: If you don't specify zone "main" will be assumed)
+**command:** _(string)_ - command can be "system-power", "zone2.volume" etc.. (NOTE: If you don't specify zone "main" will be assumed)
 
 **callback:**
 
