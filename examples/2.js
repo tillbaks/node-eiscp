@@ -3,16 +3,16 @@ var util = require('util'),
 
 
 // Connect to receiver and send a command
+// Disconnect when response is received
 
-eiscp.connect();
+eiscp.connect({reconnect: false});
 
 eiscp.on("debug", util.log);
 eiscp.on("error", util.log);
 eiscp.on("data", function (result) {
 
-    console.log(
-        "Received data from receiver:" + util.format("%j", result)
-    );
+    console.log(util.format("\nReceived this data from receiver: %j\n", result));
+    eiscp.close();
 });
 
 eiscp.on('connect', function () {

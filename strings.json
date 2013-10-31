@@ -8,11 +8,12 @@
     "received_discovery": "DEBUG (2003) Received discovery packet from %s:%s (%j)",
     "sent_discovery": "DEBUG (2004) Sent broadcast discovery packet to %s:%s (packet: %s)",
 
-    "server_error": "ERROR (3001) Server error on %s:%s - %j",
+    "server_error": "ERROR (3001) Server error on %s:%s - %s",
     "send_not_connected": "ERROR (3002) Not connected, can't send data: %j",
 
     "zone_not_exist": "ERROR (3101) Zone %s does not exist in command file",
     "cmd_not_exist": "ERROR (3102) Command %s does not exist in zone %s",
     "arg_not_exist": "ERROR (3103) Argument %s does not exist in command %s"
+    "cmd_parse_error": "ERROR (3104) Command and arguments provided could not be parsed"
 
 }
