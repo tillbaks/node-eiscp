@@ -5,7 +5,7 @@ var util = require('util'),
 // Connect to receiver and send a command
 // Disconnect when response is received
 
-eiscp.connect({reconnect: false});
+eiscp.connect();
 
 eiscp.on("debug", util.log);
 eiscp.on("error", util.log);

@@ -13,7 +13,6 @@
 
     "zone_not_exist": "ERROR (3101) Zone %s does not exist in command file",
     "cmd_not_exist": "ERROR (3102) Command %s does not exist in zone %s",
-    "arg_not_exist": "ERROR (3103) Argument %s does not exist in command %s"
+    "arg_not_exist": "ERROR (3103) Argument %s does not exist in command %s",
     "cmd_parse_error": "ERROR (3104) Command and arguments provided could not be parsed"
-
 }
