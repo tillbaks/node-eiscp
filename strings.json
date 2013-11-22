@@ -4,9 +4,9 @@
     "disconnected": "INFO (1003) Disconnected from %s:%s",
 
     "received_data": "DEBUG (2001) Recevied data from %s:%s - %j",
-    "sent_command": "DEBUG (2002) Sent command to %s:%s - %s (packet: %s)",
+    "sent_command": "DEBUG (2002) Sent command to %s:%s - %s",
     "received_discovery": "DEBUG (2003) Received discovery packet from %s:%s (%j)",
-    "sent_discovery": "DEBUG (2004) Sent broadcast discovery packet to %s:%s (packet: %s)",
+    "sent_discovery": "DEBUG (2004) Sent broadcast discovery packet to %s:%s",
 
     "server_error": "ERROR (3001) Server error on %s:%s - %s",
     "send_not_connected": "ERROR (3002) Not connected, can't send data: %j",

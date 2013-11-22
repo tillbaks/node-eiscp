@@ -22,54 +22,42 @@ config = {
     "reconnect_sleep": 5
 };
 
-// Wraps data in ISCP container
-function iscp_message(data) {
-    // ! = start character
-    // 1 = destination (1 = receiver)
-    // \x0D = end character (carriage return)
+function eiscp_packet(data, type) {
+    /*
+      Wraps command in eISCP packet for communicating over Ethernet
+      type is device type where 1 is receiver and x is for the discovery broadcast
+    */
+    var iscp_msg = new Buffer("!" + (type || "1") + data + "\x0D\x0a"),
+        header = new Buffer([
+            73,83,67,80,	// magic
+            0,0,0,16,		// header size
+            0,0,0,0,		// data size
+            1,			// version
+            0,0,0		// reserved
+        ]);
 
-    return "!1" + data + "\x0D";
+    header.writeUInt32BE(iscp_msg.length, 8); // write data size to header
+
+    return Buffer.concat([
+        header,
+        iscp_msg
+    ]);
 }
 
-// Wraps ISCP message in eISCP packet for communicating over Ethernet
-function eiscp_packet(data) {
-
-    return [
-        "ISCP",                             // magic
-        "\x00\x00\x00\x10\x00\x00\x00",     // ? no clue
-        (+(data.length + 3)).toString(16),  // data length in hex
-        "\x01",                             // version
-        "\x00\x00\x00",                     // reserved
-        data
-    ].join('');
-}
-
-// Exracts message from eISCP packet
 function eiscp_packet_extract(packet) {
-    var message, begin, end = -1;
-
-    begin = packet.indexOf("!1") + 2;
-    // TODO: I've been getting some different end character so I'm just testing which one is used
-    end = (packet.indexOf("\r") !== -1) ? packet.indexOf("\r") :
-            (packet.indexOf("\u001a") !== -1) ? packet.indexOf("\u001a") :
-                    (packet.indexOf("\u0019") !== -1) ? packet.indexOf("\u0019") :
-                            -1;
-
-    message = packet.slice(begin, end - 1);
-
-    return message;
+    /*
+      Exracts message from eISCP packet
+      Strip first 18 bytes and last 3 since that's only the header and end characters
+    */
+    return packet.toString('ascii', 18, packet.length-3);
 }
 
 // Syncronous queue which sends commands to device
 send_queue = async.queue(function (data, callback) {
 
-    var packet;
-
     if (self.is_connected) {
-        packet = eiscp_packet(iscp_message(data));
-
-        self.emit("debug", util.format(STRINGS.sent_command, config.host, config.port, data, packet));
-        eiscp.write(packet);
+        self.emit("debug", util.format(STRINGS.sent_command, config.host, config.port, data));
+        eiscp.write(eiscp_packet(data));
         if (typeof callback === 'function') {
             callback({ "result": true, "msg": "" });
         }
@@ -257,7 +245,7 @@ self.discover = function () {
     });
 
     client.on("message", function (packet, rinfo) {
-        var message = eiscp_packet_extract(packet.toString()),
+        var message = eiscp_packet_extract(packet),
             command = message.slice(0, 3),
             data;
         if (command === "ECN") {
@@ -281,8 +269,8 @@ self.discover = function () {
 
     client.on("listening", function () {
         client.setBroadcast(true);
-        var buffer = new Buffer(eiscp_packet('!xECNQSTN'));
-        self.emit("debug", util.format(STRINGS.sent_discovery, options.address, options.port, "!xECNQSTN"));
+        var buffer = eiscp_packet('ECNQSTN', 'x');
+        self.emit("debug", util.format(STRINGS.sent_discovery, options.address, options.port));
         client.send(buffer, 0, buffer.length, options.port, options.address);
         timeout_timer = setTimeout(close, options.timeout * 1000);
     });
@@ -316,7 +304,10 @@ self.connect = function (options) {
         return;
     }
 
-    connection_properties = {"host": config.host, "port": config.port};
+    connection_properties = {
+        host: config.host,
+        port: config.port
+    };
 
     self.emit("debug", util.format(STRINGS.connecting, config.host, config.port));
 
@@ -351,7 +342,7 @@ self.connect = function (options) {
 
         eiscp.on('data', function (data) {
 
-            var iscp_message = eiscp_packet_extract(data.toString()),
+            var iscp_message = eiscp_packet_extract(data),
                 result = iscp_to_command(iscp_message);
 
             result.iscp_command = iscp_message;
