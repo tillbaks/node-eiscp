@@ -6,6 +6,16 @@ Basically it is a merge of my previous module which was really simple and https:
 
 ### How to use it?
 
+#### Until first release you can add the git url to your package.json like this
+
+```
+{
+  "dependencies": {
+    "eiscp": "git://github.com/tillbaks/node-eiscp.git"
+  }
+}
+```
+
 #### See the examples
 https://github.com/tillbaks/node-eiscp/tree/master/examples
 

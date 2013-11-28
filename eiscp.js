@@ -29,14 +29,15 @@ function eiscp_packet(data, type) {
     */
     var iscp_msg = new Buffer("!" + (type || "1") + data + "\x0D\x0a"),
         header = new Buffer([
-            73,83,67,80,	// magic
-            0,0,0,16,		// header size
-            0,0,0,0,		// data size
-            1,			// version
-            0,0,0		// reserved
+            73, 83, 67, 80, // magic
+            0, 0, 0, 16,    // header size
+            0, 0, 0, 0,     // data size
+            1,              // version
+            0, 0, 0         // reserved
         ]);
 
-    header.writeUInt32BE(iscp_msg.length, 8); // write data size to header
+    // write data size to header
+    header.writeUInt32BE(iscp_msg.length, 8);
 
     return Buffer.concat([
         header,
@@ -49,12 +50,13 @@ function eiscp_packet_extract(packet) {
       Exracts message from eISCP packet
       Strip first 18 bytes and last 3 since that's only the header and end characters
     */
-    return packet.toString('ascii', 18, packet.length-3);
+    return packet.toString('ascii', 18, packet.length - 3);
 }
 
-// Syncronous queue which sends commands to device
 send_queue = async.queue(function (data, callback) {
-
+    /*
+      Syncronous queue which sends commands to device
+    */
     if (self.is_connected) {
         self.emit("debug", util.format(STRINGS.sent_command, config.host, config.port, data));
         eiscp.write(eiscp_packet(data));
@@ -71,8 +73,10 @@ send_queue = async.queue(function (data, callback) {
 
 }, 1);
 
-// Transform a low-level ISCP message to a high-level command
 function iscp_to_command(iscp_message) {
+    /*
+      Transform a low-level ISCP message to a high-level command
+    */
     var zone,
         command = iscp_message.slice(0, 3),
         args = iscp_message.slice(3);
@@ -85,7 +89,9 @@ function iscp_to_command(iscp_message) {
                     command: COMMANDS[zone][command].name,
                     argument: COMMANDS[zone][command].values[args].name
                 };
-            } else if (typeof VALUE_MAPPINGS[zone][command].__RANGE__ !== 'undefined' && /^[0-9a-fA-F]+$/.exec(args)) {
+            // TODO: Change to INTRANGES instead of __RANGE__:
+            // "MVL":{"INTRANGES":[{"range":"0,100","models":"set9"},{"range":"0,80","models":"set10"}]}
+            } else if (typeof VALUE_MAPPINGS[zone][command].INTRANGES !== 'undefined' && /^[0-9a-fA-F]+$/.exec(args)) {
                 // It's a range so we need to convert args to decimal
                 return {
                     command: COMMANDS[zone][command].name,
@@ -98,9 +104,10 @@ function iscp_to_command(iscp_message) {
     return {};
 }
 
-// Transform high-level command to a low-level ISCP message
 function command_to_iscp(command, args, zone) {
-
+    /*
+      Transform high-level command to a low-level ISCP message
+    */
     var base, parts, prefix, value,
         default_zone = 'main';
 
@@ -183,7 +190,9 @@ function command_to_iscp(command, args, zone) {
 
     if (typeof VALUE_MAPPINGS[zone][prefix][args] === 'undefined') {
 
-        if (typeof VALUE_MAPPINGS[zone][prefix].__RANGE__ !== 'undefined' && /^\d+$/.exec(args) && is_in_range(args, VALUE_MAPPINGS[zone][prefix].__RANGE__)) {
+        // TODO: Change to INTRANGES instead of __RANGE__:
+        // "MVL":{"INTRANGES":[{"range":"0,100","models":"set9"},{"range":"0,80","models":"set10"}]}
+        if (typeof VALUE_MAPPINGS[zone][prefix].INTRANGES !== 'undefined' && /^\d+$/.exec(args) && is_in_range(args, VALUE_MAPPINGS[zone][prefix].INTRANGES[0].range)) {
             // args is an integer and is in the available range for this command
             value = args;
             // Convert decimal number to hexadecimal since receiver doesn't understand decimal
@@ -197,20 +206,21 @@ function command_to_iscp(command, args, zone) {
         }
 
     } else {
-        value = VALUE_MAPPINGS[zone][prefix][args];
+        value = VALUE_MAPPINGS[zone][prefix][args].value;
     }
 
     return prefix + value;
 }
 
-// discover([options, ] callback)
-// Sends broadcast and waits for response callback called when number of devices or timeout reached
-// option.devices  - stop listening after this amount of devices have answered (default: 1)
-// option.timeout  - time in seconds to wait for devices to respond (default: 10)
-// option.address  - broadcast address to send magic packet to (default: 255.255.255.255)
-// option.port     - port to wait for response, you might have to change this is port 60128 (default) is already used
 self.discover = function () {
-
+    /*
+      discover([options, ] callback)
+      Sends broadcast and waits for response callback called when number of devices or timeout reached
+      option.devices  - stop listening after this amount of devices have answered (default: 1)
+      option.timeout  - time in seconds to wait for devices to respond (default: 10)
+      option.address  - broadcast address to send magic packet to (default: 255.255.255.255)
+      option.port     - port to wait for response, you might have to change this is port 60128 (default) is already used
+    */
     var options, callback, timeout_timer,
         provided_options = {},
         result = [],
@@ -277,15 +287,15 @@ self.discover = function () {
     client.bind(0);
 };
 
-// No options required if you only have one receiver on your network. We will find it and connect to it!
-// options.host            - Hostname/IP
-// options.port            - Port (default: 60128)
-// options.reconnect       - Try to reconnect if connection is lost (default: false)
-// options.reconnect_sleep - Time in seconds to sleep between reconnection attempts (default: 5)
 self.connect = function (options) {
-
+    /*
+      No options required if you only have one receiver on your network. We will find it and connect to it!
+      options.host            - Hostname/IP
+      options.port            - Port (default: 60128)
+      options.reconnect       - Try to reconnect if connection is lost (default: false)
+      options.reconnect_sleep - Time in seconds to sleep between reconnection attempts (default: 5)
+    */
     var connection_properties;
-
     if (typeof options !== 'undefined') {
         if (typeof options.host !== 'undefined') { config.host = options.host; }
         if (typeof options.port !== 'undefined') { config.port = options.port; }
@@ -364,10 +374,11 @@ self.close = self.disconnect = function () {
     }
 };
 
-// Send a low level command like PWR01
-// callback only tells you that the command was sent but not that it succsessfully did what you asked
 self.raw = function (data, callback) {
-
+    /*
+      Send a low level command like PWR01
+      callback only tells you that the command was sent but not that it succsessfully did what you asked
+    */
     send_queue.push(data, function (result) {
 
         if (typeof callback === 'function') {
@@ -378,18 +389,21 @@ self.raw = function (data, callback) {
 
 };
 
-// Send a high level command like system-power=query
-// callback only tells you that the command was sent but not that it succsessfully did what you asked
 self.command = function (data, callback) {
-
+    /*
+      Send a high level command like system-power=query
+      callback only tells you that the command was sent but not that it succsessfully did what you asked
+    */
     data = data.toLowerCase();
     data = command_to_iscp(data);
 
     self.raw(data, callback);
 };
 
-// Returns all commands in given zone
 self.get_commands = function (zone, callback) {
+    /*
+      Returns all commands in given zone
+    */
     var cmd, result = [];
     for (cmd in COMMAND_MAPPINGS[zone]) {
         result.push(cmd);
@@ -397,8 +411,10 @@ self.get_commands = function (zone, callback) {
     callback(result);
 };
 
-// Returns all command values in given zone and command
 self.get_command = function (command, callback) {
+    /*
+      Returns all command values in given zone and command
+    */
     var val, zone,
         result = [],
         parts = command.split(".");
