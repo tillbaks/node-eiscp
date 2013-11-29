@@ -54,6 +54,14 @@ to use the suggested syntax above.
 
 You will to listen to events to use this module.
 
+#### .on(command, callback)
+
+Data from connected receiver.
+
+**command:** _(string)_ - Any supported command like "volume" or "system-power"
+
+**callback:** _(function)_ - One argument containing the result of the command. If command is volume you would get the volume as a number.
+
 #### .on("data")
 
 Data from connected receiver.
@@ -106,9 +114,7 @@ Sends a broadcast packet and waits for response
 - `port` _(default: 60128)_ - Listening port **(NOTE: try changing this if you have trouble connecting)**
 - `timeout` _(default: 2)_ - Time in seconds to wait for respoonses after broadcast is sent
 
-**callback:**
-
-You will receive one argument cointaining an array of devices
+**callback:** _(function)_ - You will receive one argument cointaining an array of devices
 
 - `devices` _(array)_ - An array of objects
   - `host` - Receiver IP

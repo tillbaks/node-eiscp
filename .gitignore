@@ -13,3 +13,5 @@ results
 
 npm-debug.log
 node_modules
+eiscp-commands.yaml
+eiscp-commands-download.sh

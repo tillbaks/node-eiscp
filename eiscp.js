@@ -353,12 +353,24 @@ self.connect = function (options) {
         eiscp.on('data', function (data) {
 
             var iscp_message = eiscp_packet_extract(data),
-                result = iscp_to_command(iscp_message);
+                result = iscp_to_command(iscp_message),
+                commands;
 
             result.iscp_command = iscp_message;
 
             self.emit("debug", util.format(STRINGS.received_data, config.host, config.port, result));
             self.emit("data", result);
+            
+            // Emit each supported command
+            if (typeof result.command !== 'undefined') {
+                if (Array.isArray(result.command)) {
+                    result.command.forEach(function (cmd) {
+                        self.emit(cmd, result.argument);
+                    });
+                } else {
+                    self.emit(result.command, result.argument);
+                }
+            }
         });
 
         return;

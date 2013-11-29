@@ -11,18 +11,23 @@ eiscp.connect();
 // Or connect to a specific IP
 //eiscp.connect({host:"10.0.0.5"});
 
+// Prints debugging info to the terminal
 eiscp.on("debug", util.log);
+// Prints errors to the terminal
 eiscp.on("error", util.log);
 
-// Please note that there is no way to identify who caused the volume to change
-// You could just as well remove the eiscp.command (further down) and change the volume with the volume knob 
-eiscp.on("data", function (result) {
+/*
+  Here we listen to volume changes (but we close the connection after the first volume change)
+  You can listen to any supported command, see example 3.js, or you can listen to the data event to catch everything the receiver sends
 
-    // We check if returned data contains the master-volume command and print the result
-    if(typeof result.command !== 'undefined' && Array.isArray(result.command) && result.command[0] === 'master-volume') {
-        console.log(util.format("\nReceived this data from receiver: %j\n", result));
-        eiscp.close();
-    }
+  Please note that there is no way to identify who caused the volume to change
+  You could just as well remove the eiscp.command (further down) and change the volume with the volume knob
+*/
+eiscp.on('volume', function(arg) {
+    // Print received volume
+    console.log(util.format("\nVolume changed to: %s\n", arg));
+    // Close connection
+    eiscp.close();
 });
 
 eiscp.on('connect', function () {
