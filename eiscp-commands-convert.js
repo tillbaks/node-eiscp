@@ -46,7 +46,10 @@ try {
             }
             for (value in doc[zone][command].values) {
                 name = doc[zone][command].values[value].name;
-                if (typeof name !== 'undefined') {
+                if(/[BT]{xx}/.exec(value) && /[bt]-xx/.exec(name)) {
+                    // It's not yet supported
+                    console.log("Not yet supported: (command: " + command + ") (value: " + value + ") ( " + doc[zone][command].values[value].description + " )");
+                } else if (typeof name !== 'undefined') {
                     if (name instanceof Array) {
                         for (n in name) {
                             value_mappings[zone][command][name[n]] = {value: value, models: doc[zone][command].values[value].models};

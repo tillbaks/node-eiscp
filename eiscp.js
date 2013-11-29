@@ -349,7 +349,6 @@ self.connect = function (options) {
         if (typeof options.reconnect !== 'undefined') { config.reconnect = options.reconnect; }
         if (typeof options.reconnect_sleep !== 'undefined') { config.reconnect_sleep = options.reconnect_sleep; }
     }
-
     connection_properties = {
         host: config.host,
         port: config.port
