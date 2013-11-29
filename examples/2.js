@@ -38,4 +38,3 @@ eiscp.on('connect', function () {
     // Set the volume to 22
     eiscp.command("volume=22");
 });
-

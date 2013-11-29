@@ -10,31 +10,58 @@ var self, eiscp, send_queue, config,
     eiscp_commands = require('./eiscp-commands.json'),
     COMMANDS = eiscp_commands.commands,
     COMMAND_MAPPINGS = eiscp_commands.command_mappings,
-    VALUE_MAPPINGS = eiscp_commands.value_mappings;
+    VALUE_MAPPINGS = eiscp_commands.value_mappings,
+    MODELSETS = eiscp_commands.modelsets;
 
 module.exports = self = new events.EventEmitter();
 
 self.is_connected = false;
 
 config = {
-    "port": 60128,
-    "reconnect": false,
-    "reconnect_sleep": 5
+    port: 60128,
+    reconnect: false,
+    reconnect_sleep: 5,
+    modelsets: []
 };
 
-function eiscp_packet(data, type) {
+function is_in_modelsets(set) {
+    // returns true if set is in modelsets false otherwise
+    return (config.modelsets.indexOf(set) !== -1);
+}
+
+function get_modelsets(model) {
+    /*
+      Finds all modelsets that contain provided model
+      Note that this is not an exact match, model only has to be part of the modelname
+    */
+    var set, result = [];
+    for(set in MODELSETS) {
+        MODELSETS[set].forEach(function (arr){
+            if(arr.indexOf(model) !== -1) {
+                result.push(set);
+                return;
+            }
+        });
+    }
+    return result;
+}
+
+function eiscp_packet(data) {
     /*
       Wraps command in eISCP packet for communicating over Ethernet
       type is device type where 1 is receiver and x is for the discovery broadcast
     */
-    var iscp_msg = new Buffer("!" + (type || "1") + data + "\x0D\x0a"),
-        header = new Buffer([
-            73, 83, 67, 80, // magic
-            0, 0, 0, 16,    // header size
-            0, 0, 0, 0,     // data size
-            1,              // version
-            0, 0, 0         // reserved
-        ]);
+    var iscp_msg, header;
+
+    data = (data.charAt(0) !== "!") ? '!1' + data : data;
+    iscp_msg = new Buffer(data + "\x0D\x0a");
+    header = new Buffer([
+        73, 83, 67, 80, // magic
+        0, 0, 0, 16,    // header size
+        0, 0, 0, 0,     // data size
+        1,              // version
+        0, 0, 0         // reserved
+    ]);
 
     // write data size to header
     header.writeUInt32BE(iscp_msg.length, 8);
@@ -89,8 +116,6 @@ function iscp_to_command(iscp_message) {
                     command: COMMANDS[zone][command].name,
                     argument: COMMANDS[zone][command].values[args].name
                 };
-            // TODO: Change to INTRANGES instead of __RANGE__:
-            // "MVL":{"INTRANGES":[{"range":"0,100","models":"set9"},{"range":"0,80","models":"set10"}]}
             } else if (typeof VALUE_MAPPINGS[zone][command].INTRANGES !== 'undefined' && /^[0-9a-fA-F]+$/.exec(args)) {
                 // It's a range so we need to convert args to decimal
                 return {
@@ -104,6 +129,7 @@ function iscp_to_command(iscp_message) {
     return {};
 }
 
+// TODO: This function is starting to get very big, it should be split up into smaller parts and oranized better
 function command_to_iscp(command, args, zone) {
     /*
       Transform high-level command to a low-level ISCP message
@@ -171,6 +197,7 @@ function command_to_iscp(command, args, zone) {
             } else {
                 // Need at least command and argument
                 self.emit("error", util.format(STRINGS.cmd_parse_error));
+                return;
             }
         }
     }
@@ -190,23 +217,41 @@ function command_to_iscp(command, args, zone) {
 
     if (typeof VALUE_MAPPINGS[zone][prefix][args] === 'undefined') {
 
-        // TODO: Change to INTRANGES instead of __RANGE__:
-        // "MVL":{"INTRANGES":[{"range":"0,100","models":"set9"},{"range":"0,80","models":"set10"}]}
-        if (typeof VALUE_MAPPINGS[zone][prefix].INTRANGES !== 'undefined' && /^\d+$/.exec(args) && is_in_range(args, VALUE_MAPPINGS[zone][prefix].INTRANGES[0].range)) {
-            // args is an integer and is in the available range for this command
-            value = args;
-            // Convert decimal number to hexadecimal since receiver doesn't understand decimal
-            value = (+value).toString(16).toUpperCase();
-            value = (value.length < 2) ? '0' + value : value;
+        if (typeof VALUE_MAPPINGS[zone][prefix].INTRANGES !== 'undefined' && /^\d+$/.exec(args)) {
+            // This command is part of a integer range
+            var i,
+                intranges = VALUE_MAPPINGS[zone][prefix].INTRANGES,
+                len = intranges.length;
 
+            for(i = 0; i < len; i += 1) {
+                if( is_in_modelsets(intranges[i].models) && is_in_range(args, intranges[i].range) ) {
+                    // args is an integer and is in the available range for this command
+                    value = args;
+                }
+            }
+
+            if(typeof value !== 'undefined') {
+                // Convert decimal number to hexadecimal since receiver doesn't understand decimal
+                value = (+value).toString(16).toUpperCase();
+                value = (value.length < 2) ? '0' + value : value;
+            } else {
+                self.emit("error", util.format(STRINGS.arg_not_exist, args, command));
+                return;
+            }
         } else {
-
+            // Not yet supported command
             self.emit("error", util.format(STRINGS.arg_not_exist, args, command));
             return;
         }
 
     } else {
-        value = VALUE_MAPPINGS[zone][prefix][args].value;
+        // Check if the commands modelset is in the receviers modelsets
+        if (is_in_modelsets(VALUE_MAPPINGS[zone][prefix][args].models)) {
+            value = VALUE_MAPPINGS[zone][prefix][args].value;
+        } else {
+            self.emit("error", util.format(STRINGS.cmd_not_supported, command, zone));
+            return;
+        }
     }
 
     return prefix + value;
@@ -216,10 +261,10 @@ self.discover = function () {
     /*
       discover([options, ] callback)
       Sends broadcast and waits for response callback called when number of devices or timeout reached
-      option.devices  - stop listening after this amount of devices have answered (default: 1)
-      option.timeout  - time in seconds to wait for devices to respond (default: 10)
-      option.address  - broadcast address to send magic packet to (default: 255.255.255.255)
-      option.port     - port to wait for response, you might have to change this is port 60128 (default) is already used
+      option.devices    - stop listening after this amount of devices have answered (default: 1)
+      option.timeout    - time in seconds to wait for devices to respond (default: 10)
+      option.address    - broadcast address to send magic packet to (default: 255.255.255.255)
+      option.port       - receiver port should always be 60128 this is just available if you need it
     */
     var options, callback, timeout_timer,
         provided_options = {},
@@ -264,7 +309,7 @@ self.discover = function () {
                 "host":     rinfo.address,
                 "port":     data[1],
                 "model":    data[0],
-                "mac":      data[3],
+                "mac":      data[3].slice(0, 12),
                 "areacode": data[2]
             });
             self.emit("debug", util.format(STRINGS.received_discovery, rinfo.address, rinfo.port, result));
@@ -279,7 +324,7 @@ self.discover = function () {
 
     client.on("listening", function () {
         client.setBroadcast(true);
-        var buffer = eiscp_packet('ECNQSTN', 'x');
+        var buffer = eiscp_packet('!xECNQSTN');
         self.emit("debug", util.format(STRINGS.sent_discovery, options.address, options.port));
         client.send(buffer, 0, buffer.length, options.port, options.address);
         timeout_timer = setTimeout(close, options.timeout * 1000);
@@ -292,6 +337,7 @@ self.connect = function (options) {
       No options required if you only have one receiver on your network. We will find it and connect to it!
       options.host            - Hostname/IP
       options.port            - Port (default: 60128)
+      options.model           - Should be discovered automatically but if you want to override it you can
       options.reconnect       - Try to reconnect if connection is lost (default: false)
       options.reconnect_sleep - Time in seconds to sleep between reconnection attempts (default: 5)
     */
@@ -299,11 +345,17 @@ self.connect = function (options) {
     if (typeof options !== 'undefined') {
         if (typeof options.host !== 'undefined') { config.host = options.host; }
         if (typeof options.port !== 'undefined') { config.port = options.port; }
+        if (typeof options.model !== 'undefined') { config.model = options.model; }
         if (typeof options.reconnect !== 'undefined') { config.reconnect = options.reconnect; }
         if (typeof options.reconnect_sleep !== 'undefined') { config.reconnect_sleep = options.reconnect_sleep; }
     }
 
-    // If no host is configured we connect to the first device to answer
+    connection_properties = {
+        host: config.host,
+        port: config.port
+    };
+
+    // If no host is configured - we connect to the first device to answer
     if (typeof config.host === 'undefined' || config.host === '') {
         self.discover({"all": false}, function (hosts) {
             if (hosts.length > 0) {
@@ -314,10 +366,19 @@ self.connect = function (options) {
         return;
     }
 
-    connection_properties = {
-        host: config.host,
-        port: config.port
-    };
+    // If host is configured but no model - we send a discover directly to this receiver
+    if (typeof config.model === 'undefined' || config.model === '') {
+        self.discover({address: config.host}, function(hosts) {
+            if (hosts.length > 0) {
+                self.connect(hosts[0]);
+            }
+            return;
+        });
+        return;
+    }
+
+    // Get modelsets for this model (so commands which are not possible on this model aren't sent)
+    config.modelsets = get_modelsets(config.model);
 
     self.emit("debug", util.format(STRINGS.connecting, config.host, config.port));
 
@@ -391,14 +452,20 @@ self.raw = function (data, callback) {
       Send a low level command like PWR01
       callback only tells you that the command was sent but not that it succsessfully did what you asked
     */
-    send_queue.push(data, function (result) {
+    if(typeof data !== 'undefined' && data !== '') {
 
-        if (typeof callback === 'function') {
+        send_queue.push(data, function (result) {
 
-            callback(result);
-        }
-    });
+            if (typeof callback === 'function') {
 
+                callback(result);
+            }
+        });
+
+    } else if (typeof callback === 'function') {
+
+        callback({ "result": false, "msg": "No data provided." });
+    }
 };
 
 self.command = function (data, callback) {
