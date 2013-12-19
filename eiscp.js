@@ -159,9 +159,7 @@ function command_to_iscp(command, args, zone) {
 
             // Split command part by space or dot
             parts = command.split(/[. ]/);
-console.log(parts);
             parts = norm(parts);
-console.log(parts);
             if (parts.length >= 3) {
 
                 zone = parts[0];
