@@ -1,3 +1,5 @@
+/*jslint node:true nomen:true*/
+'use strict';
 var util = require('util'),
     eiscp = require('../eiscp');
 
@@ -6,7 +8,7 @@ eiscp.on('error', util.log);
 
 // Discover all receviers on network
 
-eiscp.discover(function(res){
+eiscp.discover(function (res) {
 
     console.log(res);
 });
