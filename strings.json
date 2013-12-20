@@ -14,6 +14,7 @@
     "zone_not_exist": "ERROR (zone_not_exist) Zone %s does not exist in command file",
     "cmd_not_exist": "ERROR (cmd_not_exist) Command %s does not exist in zone %s",
     "arg_not_exist": "ERROR (arg_not_exist) Argument %s does not exist in command %s",
-    "cmd_parse_error": "ERROR (cmd_parse_error) Command and arguments provided could not be parsed",
+	"arg_not_in_range": "ERROR (arg_not_in_range) Command %s=%s is not available on this model",
+    "cmd_parse_error": "ERROR (cmd_parse_error) Command and arguments provided could not be parsed (%s)",
     "cmd_not_supported": "ERROR (cmd_not_supported) Command %s in zone %s is not supported on this model."
 }
