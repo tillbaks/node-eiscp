@@ -14,7 +14,7 @@ eiscp.discover({devices: 2, timeout: 5}, function (err, result) {
 		console.log("Error message: " + result);
 	} else {
 		console.log("Found these receivers on the local network:");
-		console.dir(res);
+		console.dir(result);
 	}
 });
 

@@ -6,7 +6,6 @@ var self, eiscp, send_queue,
     util = require('util'),
     async = require('async'),
     events = require('events'),
-    STRINGS = require('./strings.json'),
     eiscp_commands = require('./eiscp-commands.json'),
     COMMANDS = eiscp_commands.commands,
     COMMAND_MAPPINGS = eiscp_commands.command_mappings,
@@ -122,7 +121,7 @@ function command_to_iscp(command, args, zone) {
 		parts = parse_command(command);
 		if(!parts) {
 			// Error parsing command
-			self.emit('error', util.format(STRINGS.cmd_parse_error, command));
+			self.emit('error', util.format("ERROR (cmd_parse_error) Command and arguments provided could not be parsed (%s)", command));
 			return;
 		}
 		zone = parts.zone;
@@ -135,12 +134,12 @@ function command_to_iscp(command, args, zone) {
     // Find the command in our database, resolve to internal eISCP command
 
     if (typeof COMMANDS[zone] === 'undefined') {
-        self.emit('error', util.format(STRINGS.zone_not_exist, zone));
+        self.emit('error', util.format("ERROR (zone_not_exist) Zone %s does not exist in command file", zone));
         return;
     }
 
     if (typeof COMMAND_MAPPINGS[zone][command] === 'undefined') {
-        self.emit('error', util.format(STRINGS.cmd_not_exist, command, zone));
+        self.emit('error', util.format("ERROR (cmd_not_exist) Command %s does not exist in zone %s", command, zone));
         return;
     }
     prefix = COMMAND_MAPPINGS[zone][command];
@@ -159,7 +158,7 @@ function command_to_iscp(command, args, zone) {
             }
 
             if (typeof value === 'undefined') {
-                self.emit('error', util.format(STRINGS.arg_not_in_range, command, args));
+                self.emit('error', util.format("ERROR (arg_not_in_range) Command %s=%s is not available on this model", command, args));
                 return;
             }
 
@@ -171,7 +170,7 @@ function command_to_iscp(command, args, zone) {
         } else {
 
             // Not yet supported command
-            self.emit('error', util.format(STRINGS.arg_not_exist, args, command));
+            self.emit('error', util.format("ERROR (arg_not_exist) Argument %s does not exist in command %s", args, command));
             return;
         }
 
@@ -181,7 +180,7 @@ function command_to_iscp(command, args, zone) {
         if (in_modelsets(VALUE_MAPPINGS[zone][prefix][args].models)) {
             value = VALUE_MAPPINGS[zone][prefix][args].value;
         } else {
-            self.emit('error', util.format(STRINGS.cmd_not_supported, command, zone));
+            self.emit('error', util.format("ERROR (cmd_not_supported) Command %s in zone %s is not supported on this model.", command, zone));
             return;
         }
     }
@@ -224,13 +223,13 @@ self.discover = function () {
         callback(false, result);
     }
 
-    client.
-	on('error', function (err) {
-        self.emit('error', util.format(STRINGS.server_error, options.address, options.port, err));
+    client
+	.on('error', function (err) {
+        self.emit('error', util.format("ERROR (server_error) Server error on %s:%s - %s", options.address, options.port, err));
         client.close();
-        callback(true, util.format(STRINGS.server_error, options.address, options.port, err));
-    }).
-	on('message', function (packet, rinfo) {
+        callback(err, null);
+    })
+	.on('message', function (packet, rinfo) {
         var message = eiscp_packet_extract(packet),
             command = message.slice(0, 3),
             data;
@@ -243,23 +242,23 @@ self.discover = function () {
                 mac:      data[3].slice(0, 12), // There's lots of null chars after MAC so we slice them off
                 areacode: data[2]
             });
-            self.emit('debug', util.format(STRINGS.received_discovery, rinfo.address, rinfo.port, result));
+            self.emit('debug', util.format("DEBUG (received_discovery) Received discovery packet from %s:%s (%j)", rinfo.address, rinfo.port, result));
             if (result.length >= options.devices) {
                 clearTimeout(timeout_timer);
                 close();
             }
         } else {
-            self.emit('debug', util.format(STRINGS.received_data, rinfo.address, rinfo.port, message));
+            self.emit('debug', util.format("DEBUG (received_data) Recevied data from %s:%s - %j", rinfo.address, rinfo.port, message));
         }
-    }).
-	on('listening', function () {
+    })
+	.on('listening', function () {
         client.setBroadcast(true);
         var buffer = eiscp_packet('!xECNQSTN');
-        self.emit('debug', util.format(STRINGS.sent_discovery, options.address, options.port));
+        self.emit('debug', util.format("DEBUG (sent_discovery) Sent broadcast discovery packet to %s:%s", options.address, options.port));
         client.send(buffer, 0, buffer.length, options.port, options.address);
         timeout_timer = setTimeout(close, options.timeout * 1000);
-    });
-	client.bind(0);
+    })
+    .bind(0);
 };
 
 self.connect = function (options) {
@@ -320,7 +319,7 @@ self.connect = function (options) {
         });
     });
 
-    self.emit('debug', util.format(STRINGS.connecting, config.host, config.port));
+    self.emit('debug', util.format("INFO (connecting) Connecting to %s:%s", config.host, config.port));
 
 	// Reconnect if we have previously connected
     if (typeof eiscp !== 'undefined') {
@@ -335,14 +334,14 @@ self.connect = function (options) {
 	on('connect', function () {
 
 		self.is_connected = true;
-		self.emit('debug', util.format(STRINGS.connected, config.host, config.port));
+		self.emit('debug', util.format("INFO (connected) Connected to %s:%s", config.host, config.port));
 		self.emit('connect');
 	}).
 
 	on('close', function () {
 
 		self.is_connected = false;
-		self.emit('debug', util.format(STRINGS.disconnected, config.host, config.port));
+		self.emit('debug', util.format("INFO (disconnected) Disconnected from %s:%s", config.host, config.port));
 		self.emit('close');
 
 		if (config.reconnect) {
@@ -353,7 +352,7 @@ self.connect = function (options) {
 
 	on('error', function (err) {
 
-		self.emit('error', util.format(STRINGS.server_error, config.host, config.port, err));
+		self.emit('error', util.format("ERROR (server_error) Server error on %s:%s - %s", config.host, config.port, err));
 		eiscp.destroy();
 	}).
 
@@ -364,7 +363,7 @@ self.connect = function (options) {
 
 		result.iscp_command = iscp_message;
 
-		self.emit('debug', util.format(STRINGS.received_data, config.host, config.port, result));
+		self.emit('debug', util.format("DEBUG (received_data) Recevied data from %s:%s - %j", config.host, config.port, result));
 		self.emit('data', result);
 
 		// If the command is supported we emit it as well
@@ -394,7 +393,7 @@ send_queue = async.queue(function (data, callback) {
     */
     if (self.is_connected) {
 
-        self.emit('debug', util.format(STRINGS.sent_command, config.host, config.port, data));
+        self.emit('debug', util.format("DEBUG (sent_command) Sent command to %s:%s - %s", config.host, config.port, data));
 
         eiscp.write(eiscp_packet(data));
 
@@ -402,8 +401,8 @@ send_queue = async.queue(function (data, callback) {
         return;
     }
 
-    self.emit('error', util.format(STRINGS.send_not_connected, data));
-    callback(true, util.format(STRINGS.send_not_connected, data));
+    self.emit('error', util.format("ERROR (send_not_connected) Not connected, can't send data: %j", data));
+    callback(err, null);
 
 }, 1);
 
@@ -418,7 +417,7 @@ self.raw = function (data, callback) {
 
             if (typeof callback === 'function') {
 
-                callback(err);
+                callback(err, null);
             }
         });
 
