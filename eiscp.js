@@ -177,7 +177,7 @@ function command_to_iscp(command, args, zone) {
     } else {
 
         // Check if the commands modelset is in the receviers modelsets
-        if (!config.very_commands || in_modelsets(VALUE_MAPPINGS[zone][prefix][args].models)) {
+        if (!config.verify_commands || in_modelsets(VALUE_MAPPINGS[zone][prefix][args].models)) {
             value = VALUE_MAPPINGS[zone][prefix][args].value;
         } else {
             self.emit('error', util.format("ERROR (cmd_not_supported) Command %s in zone %s is not supported on this model.", command, zone));
@@ -280,7 +280,7 @@ self.connect = function (options) {
 	config.model = options.model || config.model;
 	config.reconnect = options.reconnect || config.reconnect;
 	config.reconnect_sleep = options.reconnect_sleep || config.reconnect_sleep;
-    config.verify_commands = options.verify_commands || config.verify_commands;
+	config.verify_commands = options.verify_commands || config.verify_commands;
 
     connection_properties = {
         host: config.host,
