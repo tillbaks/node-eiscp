@@ -103,6 +103,7 @@ If you only have one receiver on your network there is no need to provide any op
 - `port` _(default: 60128)_ - Port of receiver
 - `reconnect` _(default: true)_ - Reconnect to receiver if connection is lost
 - `reconnect_sleep` _(default: 5)_ - Time in seconds between reconnection attempts
+- `verify_commands` _(default: true)_ - Whether to verify high-level commands for model compatibility
 
 #### discover (options, callback)
 
@@ -191,3 +192,12 @@ Run in node-eiscp directory. This will create "eiscp-commands.json". Warning thi
 ```
 node eiscp-commands-convert.js
 ```
+
+### Changes
+
+* (owagner) added new option "verify_commands", defaulting to true, which yields the previous behavior: High-level
+  commands are verified for model compatibility, and rejected otherwise. Although in theory a good idea, this makes
+  high-level commands unusable for new models which are not yet presented in the yaml file or for which no Onkyo
+  documentation is available yet (as the time of this writing, for example, the latest V 1.26 .xls does not cover
+  the NR535)
+* (owagner) change "reconnect" property to default to true, to match documentation
