@@ -11,7 +11,7 @@ var self, eiscp, send_queue,
     COMMAND_MAPPINGS = eiscp_commands.command_mappings,
     VALUE_MAPPINGS = eiscp_commands.value_mappings,
     MODELSETS = eiscp_commands.modelsets,
-    config = { port: 60128, reconnect: false, reconnect_sleep: 5, modelsets: [], send_delay: 500 };
+    config = { port: 60128, reconnect: true, reconnect_sleep: 5, modelsets: [], send_delay: 500, verify_commands: true };
 
 module.exports = self = new events.EventEmitter();
 
@@ -177,7 +177,7 @@ function command_to_iscp(command, args, zone) {
     } else {
 
         // Check if the commands modelset is in the receviers modelsets
-        if (in_modelsets(VALUE_MAPPINGS[zone][prefix][args].models)) {
+        if (!config.verify_commands || in_modelsets(VALUE_MAPPINGS[zone][prefix][args].models)) {
             value = VALUE_MAPPINGS[zone][prefix][args].value;
         } else {
             self.emit('error', util.format("ERROR (cmd_not_supported) Command %s in zone %s is not supported on this model.", command, zone));
@@ -270,6 +270,7 @@ self.connect = function (options) {
       options.model           - Should be discovered automatically but if you want to override it you can
       options.reconnect       - Try to reconnect if connection is lost (default: false)
       options.reconnect_sleep - Time in seconds to sleep between reconnection attempts (default: 5)
+      options.verify_commands - Whether the reject commands not found for the current model
     */
     var connection_properties;
 
@@ -279,6 +280,7 @@ self.connect = function (options) {
 	config.model = options.model || config.model;
 	config.reconnect = options.reconnect || config.reconnect;
 	config.reconnect_sleep = options.reconnect_sleep || config.reconnect_sleep;
+	config.verify_commands = options.verify_commands || config.verify_commands;
 
     connection_properties = {
         host: config.host,
@@ -363,7 +365,7 @@ self.connect = function (options) {
 
 		result.iscp_command = iscp_message;
 
-		self.emit('debug', util.format("DEBUG (received_data) Recevied data from %s:%s - %j", config.host, config.port, result));
+		self.emit('debug', util.format("DEBUG (received_data) Received data from %s:%s - %j", config.host, config.port, result));
 		self.emit('data', result);
 
 		// If the command is supported we emit it as well
