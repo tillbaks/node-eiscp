@@ -278,9 +278,9 @@ self.connect = function (options) {
 	config.host = options.host || config.host;
 	config.port = options.port || config.port;
 	config.model = options.model || config.model;
-	config.reconnect = options.reconnect || config.reconnect;
+	config.reconnect = (options.reconnect === undefined) ? config.reconnect : options.reconnect;
 	config.reconnect_sleep = options.reconnect_sleep || config.reconnect_sleep;
-	config.verify_commands = options.verify_commands || config.verify_commands;
+	config.verify_commands = (options.verify_commands === undefined) ? config.verify_commands : options.verify_commands;
 
     connection_properties = {
         host: config.host,
