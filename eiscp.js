@@ -185,6 +185,8 @@ function command_to_iscp(command, args, zone) {
         }
     }
 
+    self.emit('debug', util.format('DEBUG (command_to_iscp) raw command "%s"', prefix + value));
+
     return prefix + value;
 }
 
@@ -278,9 +280,9 @@ self.connect = function (options) {
 	config.host = options.host || config.host;
 	config.port = options.port || config.port;
 	config.model = options.model || config.model;
-	config.reconnect = options.reconnect || config.reconnect;
+	config.reconnect = (options.reconnect === undefined) ? config.reconnect : options.reconnect;
 	config.reconnect_sleep = options.reconnect_sleep || config.reconnect_sleep;
-	config.verify_commands = options.verify_commands || config.verify_commands;
+	config.verify_commands = (options.verify_commands === undefined) ? config.verify_commands : options.verify_commands;
 
     connection_properties = {
         host: config.host,
@@ -290,7 +292,7 @@ self.connect = function (options) {
     // If no host is configured - we connect to the first device to answer
     if (typeof config.host === 'undefined' || config.host === '') {
         self.discover(function (err, hosts) {
-            if (!err && hosts.length > 0) {
+            if (!err && hosts && hosts.length > 0) {
                 self.connect(hosts[0]);
             }
             return;
@@ -301,7 +303,7 @@ self.connect = function (options) {
     // If host is configured but no model is set - we send a discover directly to this receiver
     if (typeof config.model === 'undefined' || config.model === '') {
         self.discover({address: config.host}, function (err, hosts) {
-            if (!err && hosts.length > 0) {
+            if (!err && hosts && hosts.length > 0) {
                 self.connect(hosts[0]);
             }
             return;
@@ -321,7 +323,7 @@ self.connect = function (options) {
         });
     });
 
-    self.emit('debug', util.format("INFO (connecting) Connecting to %s:%s", config.host, config.port));
+    self.emit('debug', util.format("INFO (connecting) Connecting to %s:%s (model: %s)", config.host, config.port, config.model));
 
 	// Reconnect if we have previously connected
     if (typeof eiscp !== 'undefined') {
@@ -336,15 +338,15 @@ self.connect = function (options) {
 	on('connect', function () {
 
 		self.is_connected = true;
-		self.emit('debug', util.format("INFO (connected) Connected to %s:%s", config.host, config.port));
-		self.emit('connect');
+		self.emit('debug', util.format("INFO (connected) Connected to %s:%s (model: %s)", config.host, config.port, config.model));
+		self.emit('connect', config.host, config.port, config.model);
 	}).
 
 	on('close', function () {
 
 		self.is_connected = false;
 		self.emit('debug', util.format("INFO (disconnected) Disconnected from %s:%s", config.host, config.port));
-		self.emit('close');
+		self.emit('close', config.host, config.port);
 
 		if (config.reconnect) {
 
@@ -364,6 +366,9 @@ self.connect = function (options) {
 			result = iscp_to_command(iscp_message);
 
 		result.iscp_command = iscp_message;
+        result.host  = config.host;
+        result.port  = config.port;
+        result.model = config.model;
 
 		self.emit('debug', util.format("DEBUG (received_data) Received data from %s:%s - %j", config.host, config.port, result));
 		self.emit('data', result);
@@ -404,7 +409,7 @@ send_queue = async.queue(function (data, callback) {
     }
 
     self.emit('error', util.format("ERROR (send_not_connected) Not connected, can't send data: %j", data));
-    callback(err, null);
+    callback('Send command, while not connected', null);
 
 }, 1);
 
