@@ -157,9 +157,11 @@ function command_to_iscp(command, args, zone) {
                 }
             }
 
-            if (typeof value === 'undefined') {
+            if (typeof value === 'undefined' && config.verify_commands) {
                 self.emit('error', util.format("ERROR (arg_not_in_range) Command %s=%s is not available on this model", command, args));
                 return;
+            } else {
+                value = args;
             }
 
             // Convert decimal number to hexadecimal since receiver doesn't understand decimal
@@ -350,7 +352,7 @@ self.connect = function (options) {
 
 		if (config.reconnect) {
 
-			setTimeout(self.connect, reconnect_sleep * 1000);
+			setTimeout(self.connect, config.reconnect_sleep * 1000);
 		}
 	}).
 
