@@ -146,7 +146,7 @@ function command_to_iscp(command, args, zone) {
 
     if (typeof VALUE_MAPPINGS[zone][prefix][args] === 'undefined') {
 
-        if (typeof VALUE_MAPPINGS[zone][prefix].INTRANGES !== 'undefined' && /^\d+$/.test(args)) {
+        if (typeof VALUE_MAPPINGS[zone][prefix].INTRANGES !== 'undefined' && /^[0-9\-+]+$/.test(args)) {
             // This command is part of a integer range
             intranges = VALUE_MAPPINGS[zone][prefix].INTRANGES;
             len = intranges.length;
@@ -164,10 +164,16 @@ function command_to_iscp(command, args, zone) {
                 value = args;
             }
 
-            // Convert decimal number to hexadecimal since receiver doesn't understand decimal
-            value = (+value).toString(16).toUpperCase();
-			// Pad value if it is not 2 digits
-            value = (value.length < 2) ? '0' + value : value;
+            if (value.indexOf('+') !== -1){ // For range -12 to + 12
+        		// Convert decimal number to hexadecimal since receiver doesn't understand decimal
+				value = (+value).toString(16).toUpperCase();
+				value = '+' + value;
+			} else {
+				// Convert decimal number to hexadecimal since receiver doesn't understand decimal
+				value = (+value).toString(16).toUpperCase();
+				// Pad value if it is not 2 digits
+				value = (value.length < 2) ? '0' + value : value;
+			}
 
         } else {
 
