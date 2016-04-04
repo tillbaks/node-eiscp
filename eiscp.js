@@ -72,7 +72,7 @@ function iscp_to_command(iscp_message) {
             var zone_cmd = COMMANDS[zone][command];
 
             result.command = zone_cmd.name;
-
+            result.zone = zone;
             if (typeof zone_cmd.values[value] !== 'undefined') {
 
                 result.argument = zone_cmd.values[value].name;
