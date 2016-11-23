@@ -192,6 +192,7 @@ function command_to_iscp(command, args, zone) {
             return;
         }
     }
+    self.emit('debug', util.format('DEBUG (command_to_iscp) raw command "%s"', prefix + value));
 
     self.emit('debug', util.format('DEBUG (command_to_iscp) raw command "%s"', prefix + value));
 
